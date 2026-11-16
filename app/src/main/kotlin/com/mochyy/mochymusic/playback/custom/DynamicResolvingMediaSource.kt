@@ -38,7 +38,9 @@ class DynamicResolvingMediaSource(
     private val originalMediaItem: MediaItem,
     private val mediaSourceFactoryProvider: (androidx.media3.exoplayer.drm.DrmSessionManager?) -> MediaSource.Factory,
     private val fetcherAction: suspend (String) -> CustomStreamResult?,
-    private val onSourceResolved: (mediaId: String, source: String) -> Unit = { _, _ -> }
+    private val onSourceResolved: (mediaId: String, source: String) -> Unit = { _, _ -> },
+    /** the native engine's own hls source, for a spotify: address (the Spotify source module) */
+    private val spotifySourceFactory: () -> MediaSource.Factory? = { null },
 ) : CompositeMediaSource<Void>() {
 
     private var innerMediaSource: MediaSource? = null
@@ -89,6 +91,19 @@ class DynamicResolvingMediaSource(
                     prepareChild(gen, mediaSourceFactoryProvider(null), originalMediaItem)
                 }
 
+                return@launch
+            }
+
+            if (com.mochyy.mochymusic.spotify.SpotifyEngine.isSpotifyUri(result.streamUrl)) {
+                val spotify = spotifySourceFactory()
+                if (spotify == null) {
+                    fetchError = IOException("This build of Mochy has no Spotify engine")
+                    return@launch
+                }
+                // no custom cache key: the engine keys each audio file by its own id
+                val item = originalMediaItem.buildUpon().setUri(Uri.parse(result.streamUrl))
+                    .setMimeType(MimeTypes.APPLICATION_M3U8).build()
+                prepareChild(gen, spotify, item)
                 return@launch
             }
 

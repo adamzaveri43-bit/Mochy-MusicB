@@ -88,3 +88,7 @@ app/persistent-debug.keystore
 output-metadata.json
 vcs.xml
 lint/
+
+# Spotify engine supplied locally (native-runtime/README.md), never committed
+native-runtime/artifacts/
+*.apkm

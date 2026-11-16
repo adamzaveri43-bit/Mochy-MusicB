@@ -36,6 +36,14 @@ private val BrowserSurface = Color(0xFF1C1C1C)
 
 /** opens the module's sign-in; [onDone] hears how it went once the account is in, the sheet closes itself */
 fun PopupSheetState.showModuleSignInSheet(module: MochyModule, viewModel: ModulesViewModel, onDone: (AccountState) -> Unit) {
+    // spotify signs in through login5, not by reading a web page's headers
+    if (module is com.mochyy.mochymusic.spotify.SpotifyModule) {
+        showSpotifySignInSheet(module) { state ->
+            viewModel.onSignedIn(module.info.id, state)
+            onDone(state)
+        }
+        return
+    }
     val spec = module.signIn ?: return
     var sheet: PopupSheetHandle? = null
     sheet = showWithHandle(fullBleed = true, surface = BrowserSurface) {

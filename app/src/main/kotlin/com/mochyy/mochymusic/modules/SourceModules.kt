@@ -103,7 +103,8 @@ class SourceModules @Inject constructor(
         (id == YouTubeId || module(id)?.accountState() is AccountState.SignedIn)
 
     /** whether [id] can give a download: youtube always, since downloads have always fallen back to it, a module when on and signed in */
-    fun isUsableForDownload(id: String): Boolean = id == YouTubeId || isUsable(id)
+    // spotify's audio is only made clear inside the decoder, so it never becomes a file to keep
+    fun isUsableForDownload(id: String): Boolean = id == YouTubeId || (id != com.mochyy.mochymusic.spotify.SpotifyModule.Id && isUsable(id))
 
     fun nameOf(id: String): String = if (id == YouTubeId) "YouTube Music" else module(id)?.info?.name ?: id
 

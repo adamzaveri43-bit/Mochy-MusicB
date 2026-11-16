@@ -281,6 +281,11 @@ class ModulesViewModel @Inject constructor(
         signedIn = false
     }
 
+    /** a module that signs in on its own (spotify's login5) is done: it plays from now on, as one signed in on the web does */
+    fun onSignedIn(id: String, state: AccountState) {
+        if (state is AccountState.SignedIn) modules.setEnabled(id, true) else modules.refresh()
+    }
+
     /** what the import's musickit probe read off music.apple.com: the same two tokens the web player sends as headers */
     fun onApplePageProbe(id: String, raw: String?, onDone: (AccountState) -> Unit) {
         if (raw.isNullOrBlank() || raw == "null") return

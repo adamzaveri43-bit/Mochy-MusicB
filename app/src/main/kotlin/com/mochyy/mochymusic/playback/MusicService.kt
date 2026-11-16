@@ -1408,6 +1408,7 @@ class MusicService :
         }
 
         val player = ExoPlayer.Builder(this)
+            .also { com.mochyy.mochymusic.spotify.SpotifyEngine.start(this) }
             .setMediaSourceFactory(createMediaSourceFactory())
             .setRenderersFactory(createRenderersFactory(eqProcessor, fxProcessors, silenceProcessor, hapticAudioProcessor, crossmixProcessor, replayGain, spectrum, inspector))
             .setHandleAudioBecomingNoisy(true)
@@ -4151,6 +4152,7 @@ class MusicService :
                             if (stream != null) playingStreams[mediaId] = stream else playingStreams.remove(mediaId)
                         }
                     },
+                    spotifySourceFactory = { com.mochyy.mochymusic.spotify.SpotifyEngine.mediaSourceFactory(this@MusicService) },
                     onSourceResolved = { mediaId, source ->
                         resolvedStreamSources[mediaId] = source
                         Handler(Looper.getMainLooper()).post {
@@ -4177,6 +4179,10 @@ class MusicService :
         object : DefaultRenderersFactory(this) {
             // the renderer below tells it which file each song comes from, so it can tell a lossless song from a lossy one
             private var router: PassRouterSink? = null
+
+            // spotify's samples go through melo's native engine before the decoder; every other codec is mochy's own
+            override fun getCodecAdapterFactory(): androidx.media3.exoplayer.mediacodec.MediaCodecAdapter.Factory =
+                com.mochyy.mochymusic.spotify.SpotifyEngine.codecFactory(super.getCodecAdapterFactory())
 
             override fun buildAudioSink(
                 context: Context,
@@ -4396,6 +4402,7 @@ class MusicService :
 
     override fun onDestroy() {
         isRunning = false
+        com.mochyy.mochymusic.spotify.SpotifyEngine.stop()
 
         audioManager.unregisterAudioDeviceCallback(audioDeviceCallback)
         audioOutputs.release()

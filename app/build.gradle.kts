@@ -3,6 +3,10 @@ import com.android.build.api.dsl.ApplicationExtension
 import java.util.Properties
 import java.security.MessageDigest
 import java.net.URL
+import java.security.DigestInputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
 
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
@@ -279,6 +283,116 @@ extensions.configure<ApplicationExtension> {
             excludes += "META-INF/LICENSE.md"
             excludes += "META-INF/INDEX.LIST"
             excludes += "META-INF/io.netty.versions.properties"
+        }
+    }
+}
+
+// ---- Spotify engine (ported from Melo, native-runtime/README.md) ----------------------------
+//
+// The Spotify source plays through Spotify's own native engine, taken unchanged from an official
+// Spotify Android 9.2.0.26 APKM the builder supplies. Nothing is downloaded and the binaries are
+// never committed. Pass -PspotifyArtifact=/path/to/spotify.apkm, or put the APKM (or its extracted
+// base.apk and orbit .so) in native-runtime/artifacts. Without them the build is the usual Mochy,
+// and the Spotify module says this build has no engine. -PspotifyRuntime=false turns it off.
+val spotifyArtifact = providers.gradleProperty("spotifyArtifact").map { rootProject.file(it) }
+    .orElse(rootProject.file("native-runtime/artifacts/spotify-9.2.0.26.apkm"))
+val spotifyBaseArtifact = rootProject.file("native-runtime/artifacts/spotify-9.2.0.26.base.apk")
+val spotifyOrbitArtifact = rootProject.file("native-runtime/artifacts/spotify-9.2.0.26.orbit.so")
+val useExtractedSpotify = !providers.gradleProperty("spotifyArtifact").isPresent &&
+    spotifyBaseArtifact.isFile && spotifyOrbitArtifact.isFile
+val spotifyRuntime = providers.gradleProperty("spotifyRuntime").map(String::toBoolean)
+    .getOrElse(useExtractedSpotify || spotifyArtifact.get().isFile)
+val spotifyRuntimeAssets = layout.buildDirectory.dir("generated/spotifyRuntime/assets")
+val spotifyRuntimeLibraries = layout.buildDirectory.dir("generated/spotifyRuntime/jniLibs")
+
+extensions.configure<ApplicationExtension> {
+    defaultConfig {
+        buildConfigField("boolean", "SPOTIFY_NATIVE_RUNTIME", spotifyRuntime.toString())
+    }
+    if (spotifyRuntime) {
+        // the engine's JNI calls FindClass with dotted names, which CheckJNI (on for debuggable
+        // apps) rejects; it runs non-debuggable, like the official app
+        buildTypes.getByName("debug").isDebuggable = false
+        // it's loaded by path from nativeLibraryDir, so the library has to be extracted
+        packaging.jniLibs.useLegacyPackaging = true
+        sourceSets.getByName("main").assets.directories.add(spotifyRuntimeAssets.get().asFile.path)
+        sourceSets.getByName("main").jniLibs.directories.add(spotifyRuntimeLibraries.get().asFile.path)
+    }
+}
+
+if (spotifyRuntime) {
+    val spotifyBootstrap = tasks.register<Exec>("prepareSpotifyBootstrap") {
+        group = "build"
+        description = "Compile the engine's Java adapters (native-runtime/bootstrap) into bootstrap.dex."
+        dependsOn("prepareSpotifyRuntime")
+        inputs.dir(rootProject.file("native-runtime/bootstrap"))
+        inputs.dir(rootProject.file("native-runtime/compile-stubs"))
+        inputs.file(rootProject.file("native-runtime/build-bootstrap.sh"))
+        outputs.file(spotifyRuntimeAssets.map { it.file("spotify-runtime/bootstrap.dex") })
+        if (System.getProperty("os.name").startsWith("Windows", ignoreCase = true)) {
+            commandLine("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+                rootProject.file("native-runtime/build-bootstrap.ps1").absolutePath)
+        } else {
+            commandLine("bash", rootProject.file("native-runtime/build-bootstrap.sh").absolutePath)
+        }
+    }
+    tasks.named("preBuild").configure { dependsOn(spotifyBootstrap) }
+
+    tasks.register("prepareSpotifyRuntime") {
+        group = "build"
+        description = "Extract the pinned native engine from the locally supplied Spotify APKM."
+        val extracted = useExtractedSpotify
+        val apkm = spotifyArtifact.get()
+        val baseFile = spotifyBaseArtifact
+        val orbitFile = spotifyOrbitArtifact
+        if (extracted) {
+            inputs.file(baseFile)
+            inputs.file(orbitFile)
+        } else inputs.file(apkm)
+        val assetsDir = spotifyRuntimeAssets.get().asFile
+        val libsDir = spotifyRuntimeLibraries.get().asFile
+        outputs.dir(assetsDir)
+        outputs.dir(libsDir)
+        doLast {
+            val assets = assetsDir.resolve("spotify-runtime").apply { mkdirs() }
+            val libs = libsDir.resolve("arm64-v8a").apply { mkdirs() }
+            fun copyChecked(input: java.io.InputStream, target: File, expected: String) {
+                val digest = MessageDigest.getInstance("SHA-256")
+                DigestInputStream(input, digest).use { source -> target.outputStream().use { source.copyTo(it) } }
+                check(digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) } == expected) {
+                    target.delete()
+                    "The supplied artifact differs from Spotify Android 9.2.0.26 (148373686)."
+                }
+            }
+            val base = temporaryDir.resolve("base.apk")
+            fun extractBase(input: java.io.InputStream) {
+                copyChecked(input, base, "cc165669d31851b1193cae7d54c9261579c431b432080970f460704d06e4612f")
+                ZipFile(base).use { apk ->
+                    ZipOutputStream(assets.resolve("engine.jar").outputStream().buffered()).use { archive ->
+                        apk.entries().asSequence().filter { it.name.matches(Regex("classes[0-9]*\\.dex")) }
+                            .sortedBy { it.name }.forEach { entry ->
+                                archive.putNextEntry(ZipEntry(entry.name).apply { time = 0 })
+                                apk.getInputStream(entry).use { it.copyTo(archive) }
+                                archive.closeEntry()
+                            }
+                    }
+                }
+            }
+            val library = "liborbit-jni-spotify.so"
+            val orbitHash = "2353f26f5e174917b36c3c9de4538717c6348cc0bacf8b2c094f22d1447538e2"
+            if (extracted) {
+                extractBase(baseFile.inputStream())
+                copyChecked(orbitFile.inputStream(), libs.resolve(library), orbitHash)
+            } else ZipFile(apkm).use { bundle ->
+                extractBase(bundle.getInputStream(bundle.getEntry("base.apk") ?: error("Missing base.apk")))
+                val split = temporaryDir.resolve("arm64.apk")
+                bundle.getInputStream(bundle.getEntry("split_config.arm64_v8a.apk") ?: error("Missing ARM64 split"))
+                    .use { source -> split.outputStream().use { source.copyTo(it) } }
+                ZipFile(split).use { apk ->
+                    copyChecked(apk.getInputStream(apk.getEntry("lib/arm64-v8a/$library") ?: error("Missing Orbit library")),
+                        libs.resolve(library), orbitHash)
+                }
+            }
         }
     }
 }
