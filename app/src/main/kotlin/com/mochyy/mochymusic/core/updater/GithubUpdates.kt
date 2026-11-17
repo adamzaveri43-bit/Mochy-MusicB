@@ -101,6 +101,8 @@ private val updateScope = kotlinx.coroutines.CoroutineScope(
 
 /** Every published release, asked for once and shared for [CacheTtlMillis] unless [force]d. */
 private suspend fun getReleases(force: Boolean): Result<List<ParsedRelease>> {
+    // no upstream release (update or downgrade) can install over a build signed for the spotify engine
+    if (BuildConfig.SPOTIFY_NATIVE_RUNTIME) return Result.success(emptyList())
     val deferred = synchronized(cacheLock) {
         if (!force) {
             val cached = cachedResult

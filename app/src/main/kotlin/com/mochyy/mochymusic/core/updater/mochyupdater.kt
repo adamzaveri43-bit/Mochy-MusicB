@@ -642,6 +642,11 @@ suspend fun checkForUpdate(
     onSuccess: (tag: String, isAvailable: Boolean, changelog: List<ChangelogSection>, size: String, date: String, description: String?, imageUrl: String?, apkUrl: String?) -> Unit,
     onError: () -> Unit,
 ) {
+    // a build with the spotify engine is signed with its own key: upstream's apk can't install over it, and would drop spotify if it did
+    if (BuildConfig.SPOTIFY_NATIVE_RUNTIME) {
+        onSuccess(BuildConfig.VERSION_NAME, false, emptyList(), "", "", null, null, null)
+        return
+    }
     withContext(Dispatchers.IO) {
         try {
             val url = URL("https://api.github.com/repos/realidkroo/Mochy-Music/releases")
