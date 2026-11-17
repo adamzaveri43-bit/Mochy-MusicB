@@ -1243,7 +1243,7 @@ private fun DiscordCard(onClick: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Image(
-            painter = rememberResourcePainter(R.drawable.mochy_discord),
+            painter = rememberResourcePainter(R.drawable.integration_discord),
             contentDescription = stringResource(R.string.profile_discord_cd),
             contentScale = ContentScale.Crop,
             modifier = Modifier

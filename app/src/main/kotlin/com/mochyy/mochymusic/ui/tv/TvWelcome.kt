@@ -100,7 +100,7 @@ internal fun TvHello(onDone: () -> Unit) {
     }
 }
 
-// the welcome from the concept: the mark and the greeting on the left, the mascot holding up her phone on the right
+// the welcome from the concept: the mark and the greeting
 @Composable
 internal fun TvWelcome(onNext: () -> Unit) {
     val focus = remember { FocusRequester() }
@@ -128,64 +128,12 @@ internal fun TvWelcome(onNext: () -> Unit) {
             }
             .focusable(),
     ) {
-        TvMascot(
-            leave = { leave.value },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .fillMaxHeight(0.88f)
-                .padding(end = 56.dp)
-                .offset(y = 20.dp),
-        )
         TvGreeting(
             seen = seen,
             leave = { leave.value },
             modifier = Modifier.align(Alignment.BottomStart).padding(start = 84.dp, bottom = 120.dp),
         )
     }
-}
-
-// she swings in from the right with a little overshoot, then floats and sways while her phone glows
-@Composable
-private fun TvMascot(leave: () -> Float, modifier: Modifier = Modifier) {
-    // decoded off the main thread, and she only swings in once the picture is ready, so she never pops in halfway
-    val painter = rememberAsyncImagePainter(R.drawable.tv_mascot)
-    val arrive = remember { Animatable(0f) }
-    LaunchedEffect(painter) {
-        painter.state.first { it is AsyncImagePainter.State.Success || it is AsyncImagePainter.State.Error }
-        delay(120)
-        arrive.animateTo(1f, spring(dampingRatio = 0.58f, stiffness = 110f))
-    }
-    val idle = rememberInfiniteTransition(label = "mascotIdle")
-    val bob by idle.animateFloat(-1f, 1f, infiniteRepeatable(tween(2600, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "bob")
-    val sway by idle.animateFloat(-1f, 1f, infiniteRepeatable(tween(3700, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "sway")
-    val glow by idle.animateFloat(0.55f, 1f, infiniteRepeatable(tween(1900, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "glow")
-    Image(
-        painter = painter,
-        contentDescription = null,
-        contentScale = ContentScale.Fit,
-        alignment = Alignment.BottomEnd,
-        modifier = modifier
-            .graphicsLayer {
-                val p = arrive.value
-                val gone = leave()
-                // she pivots from her feet, so the sway reads as a lean and not a wobble
-                transformOrigin = TransformOrigin(0.5f, 1f)
-                translationX = (1f - p) * 240.dp.toPx() + gone * 280.dp.toPx()
-                translationY = (1f - p) * 36.dp.toPx() + bob * 5.dp.toPx()
-                rotationZ = (1f - p) * 8f + sway * 1.3f
-                alpha = p.coerceIn(0f, 1f) * (1f - gone)
-            }
-            // the screen she's holding up gives off a soft light, read while drawing so it never recomposes
-            .drawBehind {
-                val center = Offset(size.width - size.height * 0.2f, size.height * 0.36f)
-                val radius = size.height * 0.26f
-                drawCircle(
-                    Brush.radialGradient(listOf(MascotGlow.copy(alpha = 0.3f * glow), Color.Transparent), center, radius),
-                    radius = radius,
-                    center = center,
-                )
-            },
-    )
 }
 
 // the mark spins into place, the greeting rises in a line at a time, and the hint keeps breathing until a press

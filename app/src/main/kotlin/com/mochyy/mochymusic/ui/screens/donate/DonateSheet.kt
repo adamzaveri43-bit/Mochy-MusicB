@@ -99,11 +99,6 @@ private fun DonateSheetContent() {
                     .padding(horizontal = 26.dp),
         ) {
             Spacer(Modifier.height(CharacterTop))
-            DonateCharacter(
-                width = characterWidth,
-                overlapBelow = TitleOverlap,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
             Text(
                 text = stringResource(R.string.donate_thank_you_title),
                 fontSize = 36.sp,

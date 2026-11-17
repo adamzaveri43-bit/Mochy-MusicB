@@ -2,7 +2,6 @@
 
 package com.mochyy.mochymusic.ui.screens.setup.welcome
 
-import com.mochyy.mochymusic.R
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
@@ -14,7 +13,7 @@ import kotlin.math.sqrt
 import kotlin.random.Random
 
 // one cut-out layer of the art, placed by its top-left corner in the 1528 x 2036 canvas it was cut from
-internal class GirlLayer(val res: Int, val x: Float, val y: Float, val w: Float, val h: Float) {
+internal class GirlLayer(val x: Float, val y: Float, val w: Float, val h: Float) {
     val right get() = x + w
     val bottom get() = y + h
 }
@@ -29,15 +28,15 @@ internal object GirlArt {
     // how far across the frame her fingertips reach, so layouts can keep the phone on screen
     const val FingertipsAcross = 0.965f
 
-    val Base = GirlLayer(R.drawable.onboarding_girl_base, 255f, 208f, 1079f, 1828f)
-    val Hair = GirlLayer(R.drawable.onboarding_girl_hair, 421f, 210f, 631f, 637f)
-    val EyeLeft = GirlLayer(R.drawable.onboarding_girl_eye_l, 563f, 507f, 127f, 70f)
-    val EyeRight = GirlLayer(R.drawable.onboarding_girl_eye_r, 769f, 543f, 126f, 73f)
-    val EyeLeftShut = GirlLayer(R.drawable.onboarding_girl_eye_l_closed, 562f, 528f, 122f, 37f)
-    val EyeRightShut = GirlLayer(R.drawable.onboarding_girl_eye_r_closed, 778f, 571f, 125f, 32f)
-    val Mouth = GirlLayer(R.drawable.onboarding_girl_mouth, 663f, 636f, 98f, 107f)
-    val Hand = GirlLayer(R.drawable.onboarding_girl_phone_hand, 978f, 762f, 356f, 282f)
-    val MotionLines = GirlLayer(R.drawable.onboarding_girl_motion, 938f, 763f, 79f, 217f)
+    val Base = GirlLayer(255f, 208f, 1079f, 1828f)
+    val Hair = GirlLayer(421f, 210f, 631f, 637f)
+    val EyeLeft = GirlLayer(563f, 507f, 127f, 70f)
+    val EyeRight = GirlLayer(769f, 543f, 126f, 73f)
+    val EyeLeftShut = GirlLayer(562f, 528f, 122f, 37f)
+    val EyeRightShut = GirlLayer(778f, 571f, 125f, 32f)
+    val Mouth = GirlLayer(663f, 636f, 98f, 107f)
+    val Hand = GirlLayer(978f, 762f, 356f, 282f)
+    val MotionLines = GirlLayer(938f, 763f, 79f, 217f)
 
     // the phone she holds, drawn in code so its screen can hold anything, a video later
     const val PhoneCenterX = 1141.9f

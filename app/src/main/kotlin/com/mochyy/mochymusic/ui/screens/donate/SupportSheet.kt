@@ -67,7 +67,8 @@ private fun SupportSheetContent() {
                 .padding(horizontal = 26.dp),
         ) {
             Spacer(Modifier.height(CharacterTop))
-            DonateCharacter(width = characterWidth)
+            // the blue band ends where the character used to; the words start just under it
+            Spacer(Modifier.height(characterWidth * CharacterAspect * BandEndsOnCharacter))
             Spacer(Modifier.height(14.dp))
             Text(
                 text = "Enjoying Mochy Music?",

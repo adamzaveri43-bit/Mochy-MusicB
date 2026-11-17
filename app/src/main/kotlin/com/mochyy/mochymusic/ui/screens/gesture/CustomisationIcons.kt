@@ -121,7 +121,8 @@ internal fun IconsSection() {
             exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
         ) {
             Column {
-                AppIconFamily.entries.forEach { family ->
+                // the anime family was the mascot; its launcher entries stay (wearing the mark) but it's no longer offered
+                AppIconFamily.entries.filter { it != AppIconFamily.Anime }.forEach { family ->
                     FamilyIcons(
                         family = family,
                         picked = picked,

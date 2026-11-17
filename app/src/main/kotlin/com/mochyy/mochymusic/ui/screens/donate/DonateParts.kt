@@ -45,30 +45,6 @@ internal val DonateSoftText = Color.White.copy(alpha = 0.72f)
 internal fun characterWidth(maxWidth: Dp, maxHeight: Dp): Dp =
     minOf(maxWidth * 0.46f, maxHeight * 0.44f / CharacterAspect).coerceIn(120.dp, 250.dp)
 
-/** the coffee girl, loaded by coil so the decode never lands on the frame the sheet opens on */
-@Composable
-internal fun DonateCharacter(width: Dp, modifier: Modifier = Modifier, overlapBelow: Dp = 0.dp) {
-    val context = LocalContext.current
-    val request = remember(context) {
-        ImageRequest.Builder(context)
-            .data(R.drawable.donate_character)
-            .crossfade(true)
-            .build()
-    }
-    val height = width * CharacterAspect
-    // takes up less room than she's tall, so whatever comes next can sit over her faded bottom
-    Box(modifier.size(width, height - overlapBelow)) {
-        AsyncImage(
-            model = request,
-            contentDescription = null,
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .wrapContentHeight(Alignment.Top, unbounded = true)
-                .size(width, height),
-        )
-    }
-}
-
 /** the round grey buttons under both sheets, quiet ones are the way out */
 @Composable
 internal fun DonatePillButton(

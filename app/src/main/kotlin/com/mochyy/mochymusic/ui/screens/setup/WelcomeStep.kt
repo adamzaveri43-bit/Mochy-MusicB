@@ -1,4 +1,4 @@
-// the first onboarding page: the mochy girl showing off her phone over drifting welcomes, a tap anywhere moves on
+// the first onboarding page: drifting welcomes, a tap anywhere moves on
 
 package com.mochyy.mochymusic.ui.screens.setup
 
@@ -50,7 +50,6 @@ import com.mochyy.mochymusic.ui.screens.setup.welcome.GirlArt
 import com.mochyy.mochymusic.ui.screens.setup.welcome.GirlMotion
 import com.mochyy.mochymusic.ui.screens.setup.welcome.WelcomeColors
 import com.mochyy.mochymusic.ui.screens.setup.welcome.WelcomeDots
-import com.mochyy.mochymusic.ui.screens.setup.welcome.WelcomeGirl
 import com.mochyy.mochymusic.ui.screens.setup.welcome.WelcomeWords
 import com.mochyy.mochymusic.ui.utils.AppMotion
 import com.mochyy.mochymusic.ui.utils.HighRefreshWhile
@@ -90,18 +89,6 @@ fun WelcomeStep(isHiding: Boolean, onNext: () -> Unit) {
 
         WelcomeDots(layout.dots)
         WelcomeWords(clock.seconds, layout.wordsSize, layout.wordsTop)
-
-        WelcomeGirl(
-            motion = clock.girl,
-            seconds = clock.seconds,
-            modifier = Modifier
-                .offset(x = layout.girlLeft, y = layout.girlTop)
-                .size(layout.girlWidth, layout.girlHeight)
-                .graphicsLayer {
-                    translationY = leave * 56.dp.toPx()
-                    alpha = 1f - leave
-                },
-        )
 
         // the bottom of the art melts into the page under the closing line
         Box(
